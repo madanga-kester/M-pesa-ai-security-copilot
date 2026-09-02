@@ -1,0 +1,6 @@
+@MpesaAiCopilot.Api_HostAddress = http://localhost:5067
+
+GET {{MpesaAiCopilot.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
