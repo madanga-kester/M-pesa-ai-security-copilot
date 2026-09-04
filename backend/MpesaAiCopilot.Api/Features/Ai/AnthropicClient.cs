@@ -1,0 +1,83 @@
+﻿using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace MpesaAiCopilot.Api.Features.Ai;
+
+public class AnthropicClient
+{
+    private const string AnthropicUrl =
+        "https://api.anthropic.com/v1/messages";
+
+    private readonly HttpClient _httpClient;
+    private readonly IConfiguration _configuration;
+
+    public AnthropicClient(
+        HttpClient httpClient,
+        IConfiguration configuration)
+    {
+        _httpClient = httpClient;
+        _configuration = configuration;
+    }
+
+    private string GetApiKey()
+    {
+        var apiKey = _configuration["Anthropic:ApiKey"];
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new InvalidOperationException(
+                "Anthropic API key is not configured.");
+        }
+
+        return apiKey;
+    }
+
+    public async Task<string> ChatAsync(string message)
+    {
+        var apiKey = GetApiKey();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            AnthropicUrl);
+
+        request.Headers.Add("x-api-key", apiKey);
+        request.Headers.Add("anthropic-version", "2023-06-01");
+
+        var body = new
+        {
+            model = "claude-sonnet-4-5",
+            max_tokens = 1024,
+            messages = new[]
+            {
+                new
+                {
+                    role = "user",
+                    content = message
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(body);
+
+        request.Content = new StringContent(
+            json,
+            Encoding.UTF8,
+            "application/json");
+
+        using var response =
+            await _httpClient.SendAsync(request);
+
+        var responseBody =
+            await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Anthropic returned {(int)response.StatusCode} " +
+                $"({response.StatusCode}): {responseBody}");
+        }
+
+        return responseBody;
+    }
+}

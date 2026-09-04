@@ -1,12 +1,18 @@
+using MpesaAiCopilot.Api.Features.Ai;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+builder.Services.AddHttpClient();
+
+builder.Services.AddHttpClient<OpenAiClient>();
+builder.Services.AddHttpClient<AnthropicClient>();
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -32,6 +38,18 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+
+
+app.MapPost("/api/ai/chat", async (
+    ChatRequest request,
+    OpenAiClient openAiClient) =>
+{
+    var response = await openAiClient.ChatAsync(request.Message);
+
+    return Results.Ok(response);
+});
+
 
 app.Run();
 
